@@ -13,32 +13,43 @@ public:
 
 protected:
     void paintEvent(QPaintEvent *);
-    void mousePressEvent(QMouseEvent *e);
+    void mousePressEvent(QMouseEvent *event);
 
 signals:
+    void environmentChanged(bool ok);
+    void gameEnds(bool ok);
+    void newIteration(QString iter);
 
 public slots:
     void startGame(const int &number = -1);
+    void stopGame();
+    void resetGame();
+    void step(const int &number = 0);
 
     int cellNumber();
-    void setCellNumber(const int &s);
+    void setCellNumber(const int &cells);
 
     int interval();
     void setInterval(int msec);
 
-    QColor masterColor();
+    QString state();
+    void setState(const QString &data);
+
+    QString getIterations();
 
 private slots:
-    void paintGrid(QPainter &p);
-    void paintUniverse(QPainter &p);
+    void paintGrid(QPainter &painter);
+    void paintUniverse(QPainter &painter);
+    void newGeneration();
 
 private:
-    QColor m_masterColor;
     QTimer *timer;
     int generations;
-    int universeSize;
-    bool *universe;
-    bool *next;
+    int iterations;
+    int gridSize;
+    bool *currentGrid;
+    bool *nextGrid;
+    bool isAlive(int i, int j);
     void resetUniverse();
 };
 

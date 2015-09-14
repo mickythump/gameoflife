@@ -1,21 +1,25 @@
 #include <QtWidgets>
+#include <QDebug>
 #include "game.h"
 
 Game::Game(QWidget *parent) :
     QWidget(parent),
     timer(new QTimer(this)),
-    generations(-1)
+    generations(-1),
+    gridSize(50)
 {
     timer->setInterval(300);
-    universe = new bool[(universeSize + 2) * (universeSize + 2)];
-    next = new bool[(universeSize + 2) * (universeSize + 2)];
-    memset(universe, false, sizeof(bool)*(universeSize + 2) * (universeSize + 2));
-    memset(next, false, sizeof(bool)*(universeSize + 2) * (universeSize + 2));
+    currentGrid = new bool[(gridSize + 2) * (gridSize + 2)];
+    nextGrid = new bool[(gridSize + 2) * (gridSize + 2)];
+    connect(timer, SIGNAL(timeout()), this, SLOT(newGeneration()));
+    memset(currentGrid, false, sizeof(bool)*(gridSize + 2) * (gridSize + 2));
+    memset(nextGrid, false, sizeof(bool)*(gridSize + 2) * (gridSize + 2));
 }
 
 Game::~Game()
 {
-
+    delete [] currentGrid;
+    delete [] nextGrid;
 }
 
 void Game::paintEvent(QPaintEvent *)
@@ -25,13 +29,13 @@ void Game::paintEvent(QPaintEvent *)
     paintUniverse(p);
 }
 
-void Game::mousePressEvent(QMouseEvent *e)
+void Game::mousePressEvent(QMouseEvent *event)
 {
-    double cellWidth = (double) width() / universeSize;
-    double cellHeight = (double) height() / universeSize;
-    int k = floor(e->y() / cellHeight) + 1;
-    int j = floor(e->x() / cellWidth) + 1;
-    universe[k * universeSize + j] = !universe[k * universeSize + j];
+    double cellWidth = (double) width() / gridSize;
+    double cellHeight = (double) height() / gridSize;
+    int i = floor(event->y() / cellHeight) + 1;
+    int j = floor(event->x() / cellWidth) + 1;
+    currentGrid[i * gridSize + j] = !currentGrid[i * gridSize + j];
     update();
 }
 
@@ -41,14 +45,39 @@ void Game::startGame(const int &number)
     timer->start();
 }
 
-int Game::cellNumber()
+void Game::stopGame()
 {
-    return universeSize;
+    timer->stop();
 }
 
-void Game::setCellNumber(const int &s)
+void Game::resetGame()
 {
-    universeSize = s;
+    for(int i = 1; i <= gridSize; i++)
+    {
+        for(int j = 1; j <= gridSize; j++)
+        {
+            currentGrid[i * gridSize + j] = false;
+        }
+    }
+    iterations = 0;
+    gameEnds(true);
+    update();
+}
+
+void Game::step(const int &number)
+{
+    generations = number;
+    newGeneration();
+}
+
+int Game::cellNumber()
+{
+    return gridSize;
+}
+
+void Game::setCellNumber(const int &cells)
+{
+    gridSize = cells;
     resetUniverse();
     update();
 }
@@ -63,54 +92,155 @@ void Game::setInterval(int msec)
     timer->setInterval(msec);
 }
 
-QColor Game::masterColor()
+QString Game::state()
 {
-    return m_masterColor;
-}
-
-void Game::paintGrid(QPainter &p)
-{
-    m_masterColor.red();
-    QRect borders(0, 0, width() - 1, height() - 1);
-    QColor gridColor = m_masterColor;
-    gridColor.setAlpha(10);
-    p.setPen(gridColor);
-    double cellWidth = (double)width() / universeSize;
-    for(double k = cellWidth; k <= width(); k += cellWidth)
-        p.drawLine(k, 0, k, height());
-    double cellHeight = (double)height() / universeSize;
-    for(double k = cellHeight; k <= height(); k += cellHeight)
-        p.drawLine(0, k, width(), k);
-    p.drawRect(borders);
-}
-
-void Game::paintUniverse(QPainter &p)
-{
-    m_masterColor.red();
-    double cellWidth = (double)width() / universeSize;
-    double cellHeight = (double)height() / universeSize;
-    for(int k = 1; k <= universeSize; k++)
+    char temp;
+    QString state = "";
+    for(int i = 1; i <= gridSize; i++)
     {
-        for(int j = 1; j <= universeSize; j++)
+        for(int j = 1; j <= gridSize; j++)
         {
-            if(universe[k*universeSize + j] == true)
+            if(currentGrid[i * gridSize + j] == true)
             {
-                qreal left = (qreal)(j*cellWidth - cellWidth);
-                qreal top = (qreal)(k*cellHeight - cellHeight);
+                temp = '*';
+            }
+            else
+            {
+                temp = 'o';
+            }
+            state.append(temp);
+        }
+        state.append("\n");
+    }
+    return state;
+}
+
+void Game::setState(const QString &data)
+{
+    int index = 0;
+    for(int i = 0; i <= gridSize; i++)
+    {
+        for(int j = 0; j <= gridSize; j++)
+        {
+            currentGrid[i * gridSize + j] = data[index] == '*';
+            index ++;
+        }
+        index ++;
+    }
+    update();
+}
+
+QString Game::getIterations()
+{
+    QString text = "Iteration: " + QString::number(iterations);
+    newIteration(text);
+    return text;
+}
+
+void Game::paintGrid(QPainter &painter)
+{
+    QRect borders(0, 0, width() - 1, height() - 1);
+    QColor gridColor;
+    gridColor.red();
+    gridColor.setAlpha(10);
+    painter.setPen(gridColor);
+    double cellWidth = (double)width() / gridSize;
+    for(double i = cellWidth; i <= width(); i += cellWidth)
+        painter.drawLine(i, 0, i, height());
+    double cellHeight = (double)height() / gridSize;
+    for(double i = cellHeight; i <= height(); i += cellHeight)
+        painter.drawLine(0, i, width(), i);
+    painter.drawRect(borders);
+}
+
+void Game::paintUniverse(QPainter &painter)
+{
+    QColor gridColor;
+    gridColor.red();
+    double cellWidth = (double)width() / gridSize;
+    double cellHeight = (double)height() / gridSize;
+    for(int i = 1; i <= gridSize; i++)
+    {
+        for(int j = 1; j <= gridSize; j++)
+        {
+            if(currentGrid[i * gridSize + j] == true)
+            {
+                qreal left = (qreal)(j * cellWidth - cellWidth);
+                qreal top = (qreal)(i * cellHeight - cellHeight);
                 QRectF r(left, top, (qreal) cellWidth, (qreal) cellHeight);
-                p.fillRect(r, QBrush(m_masterColor));
+                painter.fillRect(r, QBrush(gridColor));
             }
         }
     }
 }
 
+void Game::newGeneration()
+{
+    iterations ++;
+    qDebug() << getIterations();
+    if(generations < 0)
+        generations ++;
+    int notChanged = 0;
+    for(int i = 1; i <= gridSize; i++)
+    {
+        for(int j = 1; j <= gridSize; j++)
+        {
+            nextGrid[i * gridSize + j] = isAlive(i, j);
+            if(nextGrid[i * gridSize + j] == currentGrid[i * gridSize + j])
+                notChanged ++;
+        }
+    }
+    if(notChanged == gridSize * gridSize)
+    {
+        QMessageBox::information(this, tr("Game lost sense"),
+                                 tr("The End. Game now finishes."),
+                                 QMessageBox::Ok);
+        stopGame();
+        iterations = 0;
+        gameEnds(true);
+        return;
+    }
+    for(int i = 1; i <= gridSize; i++)
+    {
+        for(int j = 1; j <= gridSize; j++)
+            currentGrid[i * gridSize + j] = nextGrid[i * gridSize + j];
+    }
+    update();
+    generations--;
+    if(generations == 0)
+    {
+        stopGame();
+        iterations = 0;
+        gameEnds(true);
+        QMessageBox::information(this, tr("Game finished."),
+                                 tr("Iterations finished."),
+                                 QMessageBox::Ok, QMessageBox::Cancel);
+    }
+}
+
+bool Game::isAlive(int i, int j)
+{
+    int count = 0;
+    count += currentGrid[(i + 1) * gridSize + j];
+    count += currentGrid[(i - 1) * gridSize + j];
+    count += currentGrid[i * gridSize + (j + 1)];
+    count += currentGrid[i * gridSize + (j - 1)];
+    count += currentGrid[(i + 1) * gridSize + (j - 1)];
+    count += currentGrid[(i - 1) * gridSize + (j + 1)];
+    count += currentGrid[(i - 1) * gridSize + (j - 1)];
+    count += currentGrid[(i + 1) * gridSize + (j + 1)];
+    if (((currentGrid[i * gridSize + j] == true) && (count == 2)) || (count == 3))
+        return true;
+    return false;
+}
+
 void Game::resetUniverse()
 {
-    delete [] universe;
-    delete [] next;
-    universe = new bool[(universeSize + 2) * (universeSize + 2)];
-    next = new bool[(universeSize + 2) * (universeSize + 2)];
-    memset(universe, false, sizeof(bool)*(universeSize + 2) * (universeSize + 2));
-    memset(next, false, sizeof(bool)*(universeSize + 2) * (universeSize + 2));
+    delete [] currentGrid;
+    delete [] nextGrid;
+    currentGrid = new bool[(gridSize + 2) * (gridSize + 2)];
+    nextGrid = new bool[(gridSize + 2) * (gridSize + 2)];
+    memset(currentGrid, false, sizeof(bool)*(gridSize + 2) * (gridSize + 2));
+    memset(nextGrid, false, sizeof(bool)*(gridSize + 2) * (gridSize + 2));
 }
 
