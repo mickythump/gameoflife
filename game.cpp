@@ -118,9 +118,9 @@ QString Game::state()
 void Game::setState(const QString &data)
 {
     int index = 0;
-    for(int i = 0; i <= gridSize; i++)
+    for(int i = 1; i <= gridSize; i++)
     {
-        for(int j = 0; j <= gridSize; j++)
+        for(int j = 1; j <= gridSize; j++)
         {
             currentGrid[i * gridSize + j] = data[index] == '*';
             index ++;
