@@ -22,3 +22,6 @@ HEADERS  += mainwindow.h \
     patterns.h
 
 FORMS    += mainwindow.ui
+
+RESOURCES += \
+    ../../../../Pictures/png/icons.qrc

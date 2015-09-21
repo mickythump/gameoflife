@@ -28,6 +28,8 @@ private slots:
 
     void on_loadButton_clicked();
 
+    void on_actionStart_triggered();
+
 private:
     Ui::MainWindow *ui;
     Game *game;

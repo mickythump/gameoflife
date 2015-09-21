@@ -140,10 +140,7 @@ QString Game::getIterations()
 void Game::paintGrid(QPainter &painter)
 {
     QRect borders(0, 0, width() - 1, height() - 1);
-    QColor gridColor;
-    gridColor.red();
-    gridColor.setAlpha(10);
-    painter.setPen(gridColor);
+    painter.setPen(QPen(QColor(200, 200, 255, 125)));
     double cellWidth = (double)width() / gridSize;
     for(double i = cellWidth; i <= width(); i += cellWidth)
         painter.drawLine(i, 0, i, height());
@@ -155,8 +152,8 @@ void Game::paintGrid(QPainter &painter)
 
 void Game::paintUniverse(QPainter &painter)
 {
-    QColor gridColor;
-    gridColor.red();
+    QColor gridColor(23, 42, 39);
+//    gridColor.red();
     double cellWidth = (double)width() / gridSize;
     double cellHeight = (double)height() / gridSize;
     for(int i = 1; i <= gridSize; i++)

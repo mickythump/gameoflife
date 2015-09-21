@@ -21,6 +21,19 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->comboBox->addItem(patterns->getPatternsNames()[i]);
     }
 
+    ui->actionStart->setIcon(QIcon(":/icons/start.png"));
+    ui->actionStop->setIcon(QIcon(":/icons/stop.png"));
+    ui->actionReset->setIcon(QIcon(":/icons/reset.png"));
+    ui->actionStep->setIcon(QIcon(":/icons/step.png"));
+    ui->actionLoad->setIcon(QIcon(":/icons/load.png"));
+    ui->actionSave->setIcon(QIcon(":/icons/save.png"));
+    ui->startButton->setIcon(QIcon(":/icons/start.png"));
+    ui->stopButton->setIcon(QIcon(":/icons/stop.png"));
+    ui->resetButton->setIcon(QIcon(":/icons/reset.png"));
+    ui->stepButton->setIcon(QIcon(":/icons/step.png"));
+    ui->loadButton->setIcon(QIcon(":/icons/load.png"));
+    ui->saveButton->setIcon(QIcon(":/icons/save.png"));
+
     ui->intervalSlider->setMinimum(minInterval);
     ui->intervalSlider->setMaximum(maxInterval);
     ui->sizeSlider->setMinimum(minSize);
@@ -46,14 +59,20 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->sizeSpinBox->setValue(int(ui->sizeSlider->value()));
 
     connect(ui->startButton, SIGNAL(clicked()), game, SLOT(startGame()));
+    connect(ui->actionStart, SIGNAL(triggered(bool)), game, SLOT(startGame()));
     connect(ui->stopButton, SIGNAL(clicked()), game, SLOT(stopGame()));
+    connect(ui->actionStop, SIGNAL(triggered(bool)), game, SLOT(stopGame()));
     connect(ui->resetButton, SIGNAL(clicked()), game, SLOT(resetGame()));
+    connect(ui->actionReset, SIGNAL(triggered(bool)), game, SLOT(resetGame()));
     connect(ui->stepButton, SIGNAL(clicked()), game, SLOT(step()));
+    connect(ui->actionStep, SIGNAL(triggered(bool)), game, SLOT(step()));
     connect(game, SIGNAL(environmentChanged(bool)), ui->sizeSlider, SLOT(setDisabled(bool)));
     connect(game, SIGNAL(gameEnds(bool)), ui->sizeSlider, SLOT(setEnabled(bool)));
 
     connect(ui->saveButton, SIGNAL(clicked(bool)), this, SLOT(saveToFile()));
+    connect(ui->actionSave, SIGNAL(triggered(bool)), this, SLOT(saveToFile()));
     connect(ui->loadButton, SIGNAL(clicked(bool)), this, SLOT(loadFromFile()));
+    connect(ui->actionLoad, SIGNAL(triggered(bool)), this, SLOT(loadFromFile()));
 
     ui->mainLayout->setStretchFactor(ui->gridLayout, 8);
     ui->mainLayout->setStretchFactor(ui->settingsLayout, 2);
@@ -141,3 +160,4 @@ void MainWindow::on_patternButton_clicked()
 {
     this->loadPattern(ui->comboBox->currentText());
 }
+
