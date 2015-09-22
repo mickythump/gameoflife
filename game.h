@@ -16,15 +16,14 @@ protected:
     void mousePressEvent(QMouseEvent *event);
 
 signals:
-    void environmentChanged(bool ok);
     void gameEnds(bool ok);
     void newIteration(QString iter);
 
 public slots:
-    void startGame(const int &number = -1);
+    void startGame();
     void stopGame();
     void resetGame();
-    void step(const int &number = 0);
+    void step();
 
     int cellNumber();
     void setCellNumber(const int &cells);
@@ -44,7 +43,6 @@ private slots:
 
 private:
     QTimer *timer;
-    int generations;
     int iterations;
     int gridSize;
     bool *currentGrid;

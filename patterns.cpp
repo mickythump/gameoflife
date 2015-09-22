@@ -10,6 +10,8 @@ Patterns::~Patterns()
 
 }
 
+//Funkcja zwracająca listę stringów: nazw plików, które znajdują się w folderze z szablonami
+
 QStringList Patterns::getPatternsNames()
 {
     QDir dir("/home/miki/Qt/Projects/GameOfLife/GameOfLife/Patterns");

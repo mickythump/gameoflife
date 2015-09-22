@@ -11,15 +11,12 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    int minInterval = 50;
-    int maxInterval = 2000;
-    int minSize = 10;
-    int maxSize = 100;
-
     for(int i = 0; i < patterns->getPatternsNames().size(); i++)
     {
         ui->comboBox->addItem(patterns->getPatternsNames()[i]);
     }
+
+//    Ustawienie ikon dla akcji w menu oraz buttonów
 
     ui->actionStart->setIcon(QIcon(":/icons/start.png"));
     ui->actionStop->setIcon(QIcon(":/icons/stop.png"));
@@ -34,6 +31,15 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->loadButton->setIcon(QIcon(":/icons/load.png"));
     ui->saveButton->setIcon(QIcon(":/icons/save.png"));
 
+//    Zmienne określające min/max interwał pomiędzy generacjami oraz min/max rozmiar siatki
+
+    int minInterval = 50;
+    int maxInterval = 2000;
+    int minSize = 10;
+    int maxSize = 100;
+
+//    Ustawienie min/max wartości dla sliderów i spinboxów interwału oraz rozmiaru siatki
+
     ui->intervalSlider->setMinimum(minInterval);
     ui->intervalSlider->setMaximum(maxInterval);
     ui->sizeSlider->setMinimum(minSize);
@@ -42,6 +48,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->intervalSpinBox->setMaximum(maxInterval);
     ui->sizeSpinBox->setMinimum(minSize);
     ui->sizeSpinBox->setMaximum(maxSize);
+
+//    Powiązanie sliderów i spinboxów ze slotami odpowiadającymi za zmiany rozmiaru siatki oraz interwału
 
     connect(ui->intervalSlider, SIGNAL(valueChanged(int)), game, SLOT(setInterval(int)));
     connect(ui->intervalSlider, SIGNAL(valueChanged(int)), ui->intervalSpinBox, SLOT(setValue(int)));
@@ -52,11 +60,15 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->intervalSpinBox, SIGNAL(valueChanged(int)), game, SLOT(setInterval(int)));
     connect(ui->sizeSpinBox, SIGNAL(valueChanged(int)), game, SLOT(setCellNumber(int)));
 
+    ui->intervalSpinBox->setValue(int(ui->intervalSlider->value()));
+    ui->sizeSpinBox->setValue(int(ui->sizeSlider->value()));
+
+//    Wypisanie numeru aktualnej iteracji na pasku statusu
+
     ui->statusBar->showMessage(game->getIterations());
     connect(game, SIGNAL(newIteration(QString)), ui->statusBar, SLOT(showMessage(QString)));
 
-    ui->intervalSpinBox->setValue(int(ui->intervalSlider->value()));
-    ui->sizeSpinBox->setValue(int(ui->sizeSlider->value()));
+//    Powiązanie akcji wciśnięcia buttonów oraz akcji w menu z odpowiadającymi im slotami
 
     connect(ui->startButton, SIGNAL(clicked()), game, SLOT(startGame()));
     connect(ui->actionStart, SIGNAL(triggered(bool)), game, SLOT(startGame()));
@@ -66,8 +78,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionReset, SIGNAL(triggered(bool)), game, SLOT(resetGame()));
     connect(ui->stepButton, SIGNAL(clicked()), game, SLOT(step()));
     connect(ui->actionStep, SIGNAL(triggered(bool)), game, SLOT(step()));
-    connect(game, SIGNAL(environmentChanged(bool)), ui->sizeSlider, SLOT(setDisabled(bool)));
-    connect(game, SIGNAL(gameEnds(bool)), ui->sizeSlider, SLOT(setEnabled(bool)));
 
     connect(ui->saveButton, SIGNAL(clicked(bool)), this, SLOT(saveToFile()));
     connect(ui->actionSave, SIGNAL(triggered(bool)), this, SLOT(saveToFile()));
@@ -84,23 +94,30 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+//Funkcja zapisująca stan siatki do pliku w formacie:
+//rozmiar_siatki interwał
+//stan siatki
+
 void MainWindow::saveToFile()
 {
-    QString filename = QFileDialog::getSaveFileName(this,
-                                                    tr("Save game to file"),
-                                                    QDir::homePath());
+    QString filename = QFileDialog::getSaveFileName(this, tr("Save game to file"), QDir::homePath());
     if(filename.length() < 1)
         return;
     QFile file(filename);
-    if(!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+    if(!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) // jeśli plik istnieje, to skasuj jego zawartość i pisz od nowa
+    {
+        qDebug() << "Error opening the file";
         return;
-    QString size = QString::number(game->cellNumber()) + "\n";
+    }
+    QString size = QString::number(game->cellNumber()) + " ";
     file.write(size.toUtf8());
-    file.write(game->state().toUtf8());
     QString interval = QString::number(game->interval()) + "\n";
     file.write(interval.toUtf8());
+    file.write(game->state().toUtf8());
     file.close();
 }
+
+//Funkcja wczytująca stan siatki z pliku
 
 void MainWindow::loadFromFile()
 {
@@ -111,12 +128,17 @@ void MainWindow::loadFromFile()
         return;
     QFile file(filename);
     if(!file.open(QIODevice::ReadOnly))
+    {
+        qDebug() << "Error opening the file";
         return;
+    }
     QTextStream in(&file);
-    int size;
-    in >> size;
+    int size, interval;
+    in >> size >> interval;
     ui->sizeSlider->setValue(size);
     game->setCellNumber(size);
+    ui->intervalSlider->setValue(interval);
+    game->setInterval(interval);
     QString state = "";
     for(int i = 0; i != size; i++)
     {
@@ -125,11 +147,9 @@ void MainWindow::loadFromFile()
         state.append(row + "\n");
     }
     game->setState(state);
-    int interval;
-    in >> interval;
-    ui->intervalSlider->setValue(interval);
-    game->setInterval(interval);
 }
+
+//Funkcja jako argument przyjmuje nazwę szablonu, który potem wczytuje z folderu, w którym znajdują się gotowe szablony
 
 void MainWindow::loadPattern(QString name)
 {
@@ -138,10 +158,12 @@ void MainWindow::loadPattern(QString name)
     if(!file.open(QIODevice::ReadOnly))
         return;
     QTextStream in(&file);
-    int size;
-    in >> size;
+    int size, interval;
+    in >> size >> interval;
     ui->sizeSlider->setValue(size);
     game->setCellNumber(size);
+    ui->intervalSlider->setValue(interval);
+    game->setInterval(interval);
     QString state = "";
     for(int i = 0; i != size; i++)
     {
@@ -150,11 +172,9 @@ void MainWindow::loadPattern(QString name)
         state.append(row + "\n");
     }
     game->setState(state);
-    int interval;
-    in >> interval;
-    ui->intervalSlider->setValue(interval);
-    game->setInterval(interval);
 }
+
+//Funkcja wywołująca powyższą funkcję po kliknięciu na przycisk załadowania szablonu
 
 void MainWindow::on_patternButton_clicked()
 {
